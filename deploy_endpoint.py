@@ -13,8 +13,13 @@ parser.add_argument(
         "Llama-2-7b-chat-hf",
         "Llama-2-13b-chat-hf",
         "Llama-2-70b-chat-hf",
+        "Meta-Llama-3-8B-Instruct",
+        "Meta-Llama-3-70B-Instruct",
         "falcon-7b-instruct",
         "Mixtral-8x7B-Instruct-v0.1",
+        "idefics-9b-instruct",
+        "idefics-80b-instruct",
+        "dbrx-instruct",
     ],
     default="Llama-2-13b-chat-hf",
     help="The language model checkpoint to use",
@@ -28,8 +33,12 @@ parser.add_argument(
 
 
 async def create_endpoint(proximl, model, gpu_count):
-    if model == "Mixtral-8x7B-Instruct-v0.1":
+    if model in ["Mixtral-8x7B-Instruct-v0.1"]:
         max_tokens = 32768
+    elif model in ["dbrx-instruct"]:
+        max_tokens = 12288
+    elif model.startswith("Meta-Llama-3"):
+        max_tokens = 8192
     elif model.startswith("Llama-2"):
         max_tokens = 4096
     else:
@@ -42,14 +51,14 @@ async def create_endpoint(proximl, model, gpu_count):
         gpu_count=gpu_count,
         disk_size=30,
         endpoint=dict(
-            start_command=f"--model-id /opt/ml/checkpoint --quantize bitsandbytes-nf4 --trust-remote-code --port 80 --json-output --hostname 0.0.0.0 --max-input-length {max_input_tokens} --max-total-tokens {max_tokens} --max-batch-prefill-tokens {max_tokens}"
+            start_command=f"--model-id /opt/ml/checkpoint --quantize bitsandbytes-nf4 --trust-remote-code --port 80 --json-output --hostname 0.0.0.0 --max-input-tokens {max_input_tokens} --max-total-tokens {max_tokens} --max-batch-prefill-tokens {max_tokens}"
         ),
         model=dict(
             checkpoints=[dict(id=model, public=True)],
         ),
         environment=dict(
             type="CUSTOM",
-            custom_image="ghcr.io/huggingface/text-generation-inference:1.4",
+            custom_image="ghcr.io/huggingface/text-generation-inference:2.0",
         ),
     )
     return job
